@@ -1,0 +1,10 @@
+[Unit]
+Description=Face Recognition Websocket
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/lib/mlface/mlface.sh
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
