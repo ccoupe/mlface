@@ -37,15 +37,17 @@ use_cuda = True
 muted = False
 five_min_thread = None
 debug = False;
+'''
 if platform == 'darwin':
 	KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
-	UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+	#UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
 else:
 	KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
-	UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+	#UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+'''
 TOLERANCE = 0.6
-FRAME_THICKNESS = 3
-FONT_THICKNESS = 2
+#FRAME_THICKNESS = 3
+#FONT_THICKNESS = 2
 MODEL = 'cnn'  # default: 'hog', other one can be 'cnn' - CUDA accelerated (if available) deep-learning pretrained model
 known_faces = []
 known_names = []
@@ -202,7 +204,7 @@ def wss_server_init(port):
 
     
 def main():
-  global isPi, settings, log, wss_server, MODEL
+  global isPi, settings, log, wss_server, MODEL,KNOWN_FACES_DIR
   # process cmdline arguments
   loglevels = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
   ap = argparse.ArgumentParser()
@@ -214,6 +216,8 @@ def main():
       default=False, help="use syslog")
   ap.add_argument("--nogpu", action='store_true', default=False,
       help="don't use gpu,  default is will use gpu")
+  ap.add_argument("-d","--dir", type=str, default="./known_faces/",
+      help="path to directory of known faces")
   args = vars(ap.parse_args())
   
   # logging setupd$
@@ -230,13 +234,15 @@ def main():
     logging.basicConfig(level=logging.INFO,datefmt="%H:%M:%S",format='%(asctime)s %(levelname)-5s %(message)s')
   
   #isPi = os.uname()[4].startswith("arm")
+  KNOWN_FACES_DIR = args['dir']
   have_cuda = dlib.cuda.get_num_devices() > 0
   use_cuda = args['nogpu']==False and have_cuda
-  log.info(f'loading models, have_cuda = {have_cuda} use cuda = {use_cuda}' )
+  log.info(f'loading models from {KNOWN_FACES_DIR}, have_cuda = {have_cuda}, use cuda = {use_cuda}' )
   if use_cuda:
     MODEL = "cnn"
   else:
     MODEL = "hog"
+  
   init_models()
 
 
