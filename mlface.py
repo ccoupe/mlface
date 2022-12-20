@@ -21,11 +21,12 @@ import websockets
 #import websocket
 import cv2
 import numpy as np
-import face_recognition
 import os.path
 import pwd
 import grp
 import base64	
+import face_recognition
+from sys import platform
 
 # Globals
 settings = None
@@ -34,9 +35,12 @@ isPi = False
 muted = False
 five_min_thread = None
 debug = False;
-
-KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
-UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+if platform == 'darwin':
+	KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
+	UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+else:
+	KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
+	UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
 TOLERANCE = 0.6
 FRAME_THICKNESS = 3
 FONT_THICKNESS = 2
@@ -218,7 +222,7 @@ def main():
   else:
     logging.basicConfig(level=logging.INFO,datefmt="%H:%M:%S",format='%(asctime)s %(levelname)-5s %(message)s')
   
-  isPi = os.uname()[4].startswith("arm")
+  #isPi = os.uname()[4].startswith("arm")
   log.info('loading models')
   init_models()
 

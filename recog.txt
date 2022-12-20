@@ -1,0 +1,20 @@
+facial regog
+
+Goal - recognize me
+       recognize people I add
+       night - very important
+       day - not so important
+       
+                            cv4 face_recog
+Training effort             rejects picts
+recog speed
+recog load
+accuracy
+  daytime no lights
+  daytime w lights
+  evening no lights
+  evening w lights
+  night no lights
+  night w lights
+  wee hrs no lights
+  wee hrs w lights
