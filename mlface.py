@@ -19,7 +19,7 @@ import logging.handlers
 import asyncio
 import websockets
 #import websocket
-import cv2
+#import cv2
 import numpy as np
 import os.path
 import pwd
