@@ -1,0 +1,5 @@
+websockets
+dlib
+face_recognition
+imutils
+rpyc

@@ -27,6 +27,7 @@ def main():
   img = f.read()
   f.close()
   rp = json.loads(get_name(uri, img))
+  print(rp)
   print(f"Known : {rp['details']['time']} secs")
 
   fp = './unknown.jpg'
