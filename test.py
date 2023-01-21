@@ -6,6 +6,7 @@ import sys
 import websocket  # pip3 install websocket-client
 import base64
 import json
+import argparse
 
 def get_name(uri, bfr):
   ws = websocket.WebSocket()
@@ -16,18 +17,22 @@ def get_name(uri, bfr):
   return reply
   
 def main():
-  # hardcoded for me and my machines and network.
-  #host = 'mini.local'
-  host = '192.168.1.2'  # bronco.local won't work! BUG somewhere 
-  port = 4785
-  uri = f'ws://{host}:{port}'
+  ap = argparse.ArgumentParser()
+  ap.add_argument("-p", "--port", action='store', type=int, default='4785',
+      nargs='?', help="server port number, 4785 is default")
+  ap.add_argument("--host", action='store', type=str, default='192.168.1.2',
+      nargs='?', help="host ip number, 192.168.1.2 is default")
+  
+  args = vars(ap.parse_args())
+  
+  uri = f"ws://{args['host']}:{args['port']}"
   
   fp = './known_faces/cecil/13.jpg'
   f = open(fp, 'rb')
   img = f.read()
   f.close()
   rp = json.loads(get_name(uri, img))
-  print(rp)
+  #print(rp)
   print(f"Known : {rp['details']['time']} secs")
 
   fp = './unknown.jpg'

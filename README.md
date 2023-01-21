@@ -16,12 +16,9 @@ Docker required the ccoupe:dlib image with requires the
 
 $ nvidia-docker build -t ccoupe:mlface .
 
-$ nvidia-docker run -dp 4785:4785 -v /home/ccoupe/Projects/mlface/known_faces:/known_faces \
+$ nvidia-docker run -dp 4785:4785 -v /home/ccoupe/known_faces:/known_faces \
 --name=mlface ccoupe:mlface
 
-     OR
-     
-$ nvidia-docker run -dp 4785:4785 --mount source=known_faces,target=/known_faces --name=mlface ccoupe:mlface
-
-if you like your volume in /var/lib/docker/volumes/ - I don't because it
-should be accessable to a user account, not just root.
+known_faces/<name1>/<pic1>.jpg, known_faces/<name1>/<pic2>.jpg,,,
+  known_faces/<name2>/<pic1>.jpg,,, 
+  known_faces/<name3>/<pic1>.jpg,,,
