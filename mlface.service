@@ -3,6 +3,7 @@ Description=Face Recognition Websocket
 After=network-online.target
 
 [Service]
+User=ccoupe
 ExecStart=/usr/local/lib/mlface/mlface.sh
 Restart=on-abort
 

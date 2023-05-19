@@ -19,27 +19,35 @@ import logging.handlers
 import asyncio
 import websockets
 #import websocket
-import cv2
+#import cv2
 import numpy as np
-import face_recognition
 import os.path
 import pwd
 import grp
 import base64	
+import dlib
+import face_recognition
+from sys import platform
 
 # Globals
 settings = None
 applog = None
 isPi = False
+use_cuda = True
 muted = False
 five_min_thread = None
 debug = False;
-
-KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
-UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+'''
+if platform == 'darwin':
+	KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
+	#UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+else:
+	KNOWN_FACES_DIR = '/usr/local/lib/mlface/known_faces'
+	#UNKNOWN_FACES_DIR = '/usr/local/lib/mlface/unknown_faces'
+'''
 TOLERANCE = 0.6
-FRAME_THICKNESS = 3
-FONT_THICKNESS = 2
+#FRAME_THICKNESS = 3
+#FONT_THICKNESS = 2
 MODEL = 'cnn'  # default: 'hog', other one can be 'cnn' - CUDA accelerated (if available) deep-learning pretrained model
 known_faces = []
 known_names = []
@@ -122,20 +130,23 @@ def five_min_timer():
 # ---- websocket server - send payload to mqtt ../reply/set
   
 async def wss_on_message(ws, path):
-  global hmqtt, settings, log
+  global hmqtt, settings, log, use_cuda
   #log.info(f'wake up {path}')
   message = await ws.recv()
   start_time = datetime.now()
+  # get the image sent to us.
+  # TODO: write to memory chunk instead of file:
+  #   create a Numpy object from PIL.image(message)
+  #
   imageBytes = base64.b64decode(message)
-  # get the image sent to us. Send it thru the matcher, 
-  # TODO: write to memory chunk instead of file
   o = open("/tmp/face.jpg","wb")
   o.write(imageBytes)
   o.close()
   image = face_recognition.load_image_file("/tmp/face.jpg")
   img_width = image.shape[1]
   img_height = image.shape[0]
-  # This time we first grab face locations - we'll need them to draw boxes
+  
+  # Find face locations 
   locations = face_recognition.face_locations(image, model=MODEL)
   
   # Now since we know loctions, we can pass them to face_encodings as second argument
@@ -144,7 +155,7 @@ async def wss_on_message(ws, path):
   
   # We passed our image through face_locations and face_encodings, so we can modify it
   # First we need to convert it from RGB to BGR as we are going to work with cv2
-  image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+  #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
   
   # But this time we assume that there might be more faces in an image - we can find faces of different people
   mats = []
@@ -193,16 +204,20 @@ def wss_server_init(port):
 
     
 def main():
-  global isPi, settings, log, wss_server
+  global isPi, settings, log, wss_server, MODEL,KNOWN_FACES_DIR
   # process cmdline arguments
   loglevels = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
   ap = argparse.ArgumentParser()
   #ap.add_argument("-c", "--conf", required=True, type=str,
   #  help="path and name of the json configuration file")
   ap.add_argument("-p", "--port", action='store', type=int, default='4785',
-  nargs='?', help="server port number, 4785 is default")
+      nargs='?', help="server port number, 4785 is default")
   ap.add_argument("-s", "--syslog", action = 'store_true',
-    default=False, help="use syslog")
+      default=False, help="use syslog")
+  ap.add_argument("--nogpu", action='store_true', default=False,
+      help="don't use gpu,  default is will use gpu")
+  ap.add_argument("-d","--dir", type=str, default="./known_faces/",
+      help="path to directory of known faces")
   args = vars(ap.parse_args())
   
   # logging setupd$
@@ -218,8 +233,16 @@ def main():
   else:
     logging.basicConfig(level=logging.INFO,datefmt="%H:%M:%S",format='%(asctime)s %(levelname)-5s %(message)s')
   
-  isPi = os.uname()[4].startswith("arm")
-  log.info('loading models')
+  #isPi = os.uname()[4].startswith("arm")
+  KNOWN_FACES_DIR = args['dir']
+  have_cuda = dlib.cuda.get_num_devices() > 0
+  use_cuda = args['nogpu']==False and have_cuda
+  log.info(f'loading models from {KNOWN_FACES_DIR}, have_cuda = {have_cuda}, use cuda = {use_cuda}' )
+  if use_cuda:
+    MODEL = "cnn"
+  else:
+    MODEL = "hog"
+  
   init_models()
 
 
