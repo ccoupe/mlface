@@ -12,8 +12,6 @@ from datetime import datetime
 import time, threading, sched
 import socket
 import os
-#from lib.Settings import Settings
-#from lib.Constants import State, Event
 import logging
 import logging.handlers
 import asyncio
@@ -51,7 +49,10 @@ TOLERANCE = 0.6
 MODEL = 'cnn'  # default: 'hog', other one can be 'cnn' - CUDA accelerated (if available) deep-learning pretrained model
 known_faces = []
 known_names = []
+known_faces_dir =''
 
+# returns IP string of running system.
+#
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -65,16 +66,17 @@ def get_ip():
     return IP
 
 def init_models():
-  # We oranize known faces as subfolders of KNOWN_FACES_DIR
+  # We organize known faces as subfolders of known_faces_dir
   # Each subfolder's name becomes our label (name)
-  global log, known_faces, known_names
-  for name in os.listdir(KNOWN_FACES_DIR):
+  global log, known_faces, known_names, known_faces_dir
+  print("known_faces_dir", known_faces_dir)
+  for name in os.listdir(known_faces_dir):
   
     # Next we load every file of faces of known person
-    for filename in os.listdir(f'{KNOWN_FACES_DIR}/{name}'):
+    for filename in os.listdir(f'{known_faces_dir}/{name}'):
       log.info('working on {}/{}'.format(name,filename))
       # Load an image
-      image = face_recognition.load_image_file(f'{KNOWN_FACES_DIR}/{name}/{filename}')
+      image = face_recognition.load_image_file(f'{known_faces_dir}/{name}/{filename}')
         
       # Get 128-dimension face encoding
       # Always returns a list of found faces, for this purpose we take first face only (assuming one face per image as you can't be twice on one image)
@@ -88,8 +90,8 @@ def init_models():
         log.info(f"can't find a face in {name}/{filename}")
       
 def update_models(name, image):
-  global log, known_faces, known_names
-  td = f'{KNOWN_FACES_DIR}/{name}' 
+  global log, known_faces, known_names, known_faces_dir
+  td = f'{known_faces_dir}/{name}' 
   if not os.path.exists(td):
     os.mkdir(td)
   fp = f'{td}/{name}.jpg'
@@ -111,19 +113,16 @@ def update_models(name, image):
     log.info(f'updated running models')
   except:
     log.info(f'is there a face in {fp}')
-
-  
   
 def long_timer_fired():
   global five_min_thread
-  #mycroft_mute_status()
   #five_min_thread = threading.Timer(5 * 60, long_timer_fired)
   #five_min_thread.start()
   exit()
 
 def five_min_timer():
   global five_min_thread
-  print('creating long timer')
+  print('creating long one shot timer')
   five_min_thread = threading.Timer(1.5 * 60, long_timer_fired)
   five_min_thread.start()
     
@@ -204,7 +203,7 @@ def wss_server_init(port):
 
     
 def main():
-  global isPi, settings, log, wss_server, MODEL,KNOWN_FACES_DIR
+  global isPi, settings, log, wss_server, MODEL, known_faces_dir
   # process cmdline arguments
   loglevels = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
   ap = argparse.ArgumentParser()
@@ -234,10 +233,10 @@ def main():
     logging.basicConfig(level=logging.INFO,datefmt="%H:%M:%S",format='%(asctime)s %(levelname)-5s %(message)s')
   
   #isPi = os.uname()[4].startswith("arm")
-  KNOWN_FACES_DIR = args['dir']
+  known_faces_dir = args['dir']
   have_cuda = dlib.cuda.get_num_devices() > 0
   use_cuda = args['nogpu']==False and have_cuda
-  log.info(f'loading models from {KNOWN_FACES_DIR}, have_cuda = {have_cuda}, use cuda = {use_cuda}' )
+  log.info(f'loading models from {known_faces_dir}, have_cuda = {have_cuda}, use cuda = {use_cuda}' )
   if use_cuda:
     MODEL = "cnn"
   else:
