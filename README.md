@@ -14,10 +14,16 @@ rectangle is returned, assume there is a face.
 
 Docker required the ccoupe:dlib image with requires the
 
-$ nvidia-docker build -t ccoupe:mlface .
+#   Stoic is older and needs nvidia-docker 
+$ nvidia-docker build --progress=plain -t ccoupe/mlface .
+$ nvidia-docker run -dp 4785:4785 -v /home/ccoupe/Projects/known_faces:/known_faces -e TZ=America/Boise \
+--name=mlface ccoupe/mlface
+#   Bronco is newer and just uses docker
+$ docker build -t ccoupe/mlface --progress=plain .
+$ docker run -dp 4785:4785 -v /home/ccoupe/Projects/known_faces:/known_faces --runtime nvidia -e TZ=America/Boise --name=mlface ccoupe/mlface
 
-$ nvidia-docker run -dp 4785:4785 -v /home/ccoupe/known_faces:/known_faces \
---name=mlface ccoupe:mlface
+
+
 
 known_faces/<name1>/<pic1>.jpg, known_faces/<name1>/<pic2>.jpg,,,
   known_faces/<name2>/<pic1>.jpg,,, 

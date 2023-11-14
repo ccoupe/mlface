@@ -1,16 +1,12 @@
-FROM ccoupe/opencv-dlib-cuda
+FROM ccoupe/opencv-dlib-cuda 
 
 WORKDIR /usr/local/lib/mlface/
 
-COPY requirements.txt requirements.txt
-
-RUN pip3 install -r ./requirements.txt
+RUN pip3 install websockets imutils rpyc
 
 COPY mlface.py /usr/local/lib/mlface/
 COPY mlface.sh /usr/local/lib/mlface/
 COPY lib/Algo.py /usr/local/lib/mlface/lib/ 
 COPY docker-mlface.sh /usr/local/lib/mlface
-
-#COPY known_faces/* /usr/local/lib/mlface/known_faces/
 
 CMD ["/usr/local/lib/mlface/docker-mlface.sh"]
