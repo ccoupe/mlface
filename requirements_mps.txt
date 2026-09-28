@@ -1,0 +1,6 @@
+torch
+torchvision
+facenet-pytorch
+websockets
+numpy
+pillow
