@@ -35,9 +35,12 @@ def init_models():
     log.info(f"Loading reference models on {device}...")
     
     # MTCNN for face detection/alignment, InceptionResnetV1 for embedding extraction
-    # Since we only want the face box and alignment, we initialize MTCNN
-    mtcnn = MTCNN(keep_all=True, device=device)
-    resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+    # Due to MPS adaptive pool issue in PyTorch's interpolate(mode='area'), MTCNN must run on CPU
+    # By increasing min_face_size from 20 to 40, we skip processing the largest image pyramids for huge speedup
+    mtcnn = MTCNN(keep_all=True, device='cpu', min_face_size=40)
+    
+    # InceptionResnetV1 runs fine on MPS, and we use FP16 for extra speed
+    resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device).half()
     
     log.info(f"Scanning known faces from directory: {known_faces_dir}")
     if not os.path.exists(known_faces_dir):
@@ -65,8 +68,8 @@ def init_models():
                     if face_tensor.dim() == 3:
                         face_tensor = face_tensor.unsqueeze(0)
                         
-                    # Calculate reference 512-dim embedding
-                    embedding = resnet(face_tensor.to(device)).detach().cpu().numpy()[0]
+                    # Calculate reference 512-dim embedding on M2 GPU
+                    embedding = resnet(face_tensor.to(device).half()).detach().cpu().numpy()[0]
                     known_embeddings.append(embedding)
                     known_names.append(name)
                 else:
@@ -91,7 +94,7 @@ def compare_embeddings(embedding, tolerance=0.6):
         return known_names[min_idx], confidence
     return "Unknown", confidence
 
-async def wss_on_message(ws, path):
+async def wss_on_message(ws):
     global log, mtcnn, resnet
     message = await ws.recv()
     start_time = datetime.now()
@@ -102,19 +105,30 @@ async def wss_on_message(ws, path):
         img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         img_width, img_height = img.size
         
-        # 1. Detect faces using M2 GPU
-        boxes, probs = mtcnn.detect(img)
+        # 1. Detect faces using CPU (MPS workaround)
+        # We downscale large images purely for the detection phase to speed it up significantly
+        scale = min(320.0 / max(img_width, img_height), 1.0)
+        if scale < 1.0:
+            detect_img = img.resize((int(img_width * scale), int(img_height * scale)), Image.Resampling.BILINEAR)
+        else:
+            detect_img = img
+            
+        boxes, probs = mtcnn.detect(detect_img)
         
         mats = []
         if boxes is not None:
-            # 2. Extract face embeddings
-            faces = mtcnn(img)
+            # Scale boxes back to original image size
+            if scale < 1.0:
+                boxes = boxes / scale
+                
+            # 2. Extract face embeddings without re-detecting
+            faces = mtcnn.extract(img, boxes, None)
             if faces is not None:
                 if faces.dim() == 3:
                     faces = faces.unsqueeze(0)
                 
-                # Forward pass on M2 GPU
-                embeddings = resnet(faces.to(device)).detach().cpu().numpy()
+                # Forward pass on M2 GPU with FP16
+                embeddings = resnet(faces.to(device).half()).detach().cpu().numpy()
                 
                 for box, prob, embedding in zip(boxes, probs, embeddings):
                     # Find closest match in the database
@@ -149,6 +163,10 @@ async def wss_on_message(ws, path):
         log.error(f"Error processing websocket message: {e}")
         await ws.send(json.dumps({"error": str(e)}))
 
+async def start_server(port):
+    async with websockets.serve(wss_on_message, "0.0.0.0", port):
+        await asyncio.Future()  # run forever
+
 def main():
     global log, known_faces_dir
     
@@ -167,11 +185,8 @@ def main():
     init_models()
     
     # Start Websocket Server
-    server = websockets.serve(wss_on_message, "0.0.0.0", args['port'])
     log.info(f"PyTorch MPS Websocket server starting on port {args['port']}...")
-    
-    asyncio.get_event_loop().run_until_complete(server)
-    asyncio.get_event_loop().run_forever()
+    asyncio.run(start_server(args['port']))
 
 if __name__ == '__main__':
     sys.exit(main())
