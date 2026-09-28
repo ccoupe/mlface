@@ -6,7 +6,11 @@ workon py3
 echo 'Any error will be apparent'
 echo 'Bronco.local:'
 python3 test.py --host 192.168.1.2
-echo 'Stoic.local:'
-python3 test.py --host stoic.local
-echo 'Mini.local:'
-python3 test.py --host mini.local
+echo 'Bigboy.local:'
+python3 test.py --host bigboy.local
+# echo 'asahi.local:'
+# python3 test.py --host asahi.local
+#echo 'mini2.local:'
+#python3 test.py --host mini2.local
+echo 'nassy.allhat.org:'
+python3 test.py --host nassy

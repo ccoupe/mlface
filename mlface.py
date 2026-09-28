@@ -234,7 +234,10 @@ def main():
   
   #isPi = os.uname()[4].startswith("arm")
   known_faces_dir = args['dir']
-  have_cuda = dlib.cuda.get_num_devices() > 0
+  try:
+    have_cuda = dlib.cuda.get_num_devices() > 0
+  except Exception:
+    have_cuda = False
   use_cuda = args['nogpu']==False and have_cuda
   log.info(f'loading models from {known_faces_dir}, have_cuda = {have_cuda}, use cuda = {use_cuda}' )
   if use_cuda:

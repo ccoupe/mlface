@@ -6,7 +6,7 @@
    <string>com.mvmanila.mlface</string>
    <key>ProgramArguments</key>
    <array>
-	 <string>/usr/local/share/mlface/osxface.sh</string>
+	 <string>/usr/local/lib/mlface/osxface.sh</string>
    </array>
    <key>StandardOutPath</key>
    <string>/var/log/mlface.log</string>

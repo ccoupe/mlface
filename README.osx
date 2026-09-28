@@ -1,23 +1,73 @@
-Mlface compares an image (containing a face) and compares it to a list of
-known 'people' and returns the name of the person or 'None'.
+# Running mlface on macOS Apple Silicon (M1/M2/M3)
 
-mlface can be run as a Docker container or as a standalone, systemd managed
-application. It listens on a websocket on port 4785. A base64 encoded jpg is sent to '/' path.
-A json response is returned which contains the name if matched. A face enclosing 
-rectangle is returned, assume there is a face.
+`mlface` can be run either **natively** (recommended for best performance using Apple Silicon's hardware acceleration) or inside a **Docker container** (using ARM64 virtualization).
 
-{'details': {'plug': 'face', 'name': 'face', 'reason': 'face', 
-  'matrices': [{'x': 64, 'y': 333, 'width': 132, 'height': 265,
-   'tag': 'cecil', 'confidence': 1.0}], 
-   'imgWidth': 640, 'imgHeight': 480, 'time': 0.041136}
-}
+---
 
-Docker required the ccoupe:dlib image with requires the
+## Option 1: Native macOS Installation (Recommended)
 
-$ docker build -t fcrecog-arm64 .
+Running natively provides the best performance because `dlib` and `face_recognition` can utilize Apple Silicon's native CPU optimizations (ARM NEON and the macOS Accelerate framework) without Docker VM overhead.
 
-$ docker run -dp 4785:4785 -v /Volumes/Projects/known_faces:/known_faces --name=mlface fcrecog-arm64
+### 1. Install System Dependencies
+Make sure you have [Homebrew](https://brew.sh/) installed, then install the build tools and libraries:
+```bash
+brew install cmake boost dlib
+```
 
-known_faces/<name1>/<pic1>.jpg, known_faces/<name1>/<pic2>.jpg,,,
-  known_faces/<name2>/<pic1>.jpg,,, 
-  known_faces/<name3>/<pic1>.jpg,,,
+### 2. Set Up a Python Virtual Environment
+We recommend using a clean Python virtual environment to avoid conflicts:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install Python Dependencies
+Upgrade `pip` and install the requirements:
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 4. Run the Service
+You can run the server directly:
+```bash
+python3 mlface.py -d ./known_faces
+```
+
+### 5. Run as a macOS Service (LaunchAgent)
+To run the service automatically in the background when you log in:
+1. Copy the plist file to your `LaunchAgents` directory:
+   ```bash
+   cp com.mvmanila.mlface.plist ~/Library/LaunchAgents/
+   ```
+2. Load and start the background service:
+   ```bash
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mvmanila.mlface.plist
+   ```
+3. To stop and unload the service:
+   ```bash
+   launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.mvmanila.mlface.plist
+   ```
+
+---
+
+## Option 2: Docker Installation (ARM64)
+
+If you prefer to run `mlface` isolated in a Docker container on Apple Silicon, use the ARM64-specific Dockerfile.
+
+### 1. Build the Docker Image
+Build the container using `Dockerfile.arm64`:
+```bash
+docker build -f Dockerfile.arm64 -t fcrecog-arm64 .
+```
+
+### 2. Run the Docker Container
+Mount your local directory containing known faces to the container:
+```bash
+docker run -dp 4785:4785 \
+  -v ~/known_faces:/known_faces \
+  --name mlface \
+  --restart always \
+  fcrecog-arm64
+```
+*(Make sure to adjust `~/known_faces` to the actual directory of known faces on your host mac).*
