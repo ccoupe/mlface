@@ -4,7 +4,29 @@ This branch (`option-a-mps`) implements Option A: **Face Detection and Recogniti
 
 ---
 
-## Prerequisites & Installation
+## Standard Installation (Homebrew Service)
+
+The preferred way to run this on macOS is as a local Homebrew service. This moves the execution off external mounts to the local SSD for better performance.
+
+1. **Install files and setup Virtual Environment**:
+   ```bash
+   sudo make install
+   ```
+   This installs everything to `/usr/local/lib/mlface/`.
+
+2. **Configure and start the Homebrew service**:
+   ```bash
+   make brew-setup
+   ```
+
+3. **Manage the service**:
+   ```bash
+   brew services list
+   brew services restart mlface
+   tail -f /usr/local/var/log/mlface.log
+   ```
+
+## Manual Prerequisites & Installation
 
 1. **Install System Dependencies** using [Homebrew](https://brew.sh/):
    ```bash

@@ -1,0 +1,57 @@
+# Makefile for Linux (systemd)
+
+DESTDIR = /usr/local/lib/mlface
+VENV = $(DESTDIR)/venv
+SERVICE_FILE = /etc/systemd/system/mlface.service
+
+.PHONY: all install systemd-setup systemd-update clean
+
+all:
+	@echo "Linux Management:"
+	@echo "  sudo make install         - Install files and venv to $(DESTDIR)"
+	@echo "  sudo make systemd-setup   - Install and start systemd service"
+	@echo "  sudo make systemd-update  - Update files and restart service"
+
+install:
+	@echo "Creating directory $(DESTDIR)"
+	mkdir -p $(DESTDIR)
+	@echo "Copying source files"
+	cp mlface.py $(DESTDIR)/
+	cp -R lib $(DESTDIR)/
+	cp requirements.txt $(DESTDIR)/
+	@echo "Setting up virtual environment"
+	python3 -m venv $(VENV)
+	$(VENV)/bin/python3 -m pip install --upgrade pip
+	$(VENV)/bin/python3 -m pip install -r $(DESTDIR)/requirements.txt
+	@echo "Creating launch script"
+	echo '#!/bin/bash' > $(DESTDIR)/launch_mlface.sh
+	echo 'cd $(DESTDIR)' >> $(DESTDIR)/launch_mlface.sh
+	# Using ~/known_faces as a logical default for Linux, adjust as needed
+	echo 'exec ./venv/bin/python3 mlface.py -d ~/known_faces' >> $(DESTDIR)/launch_mlface.sh
+	chmod +x $(DESTDIR)/launch_mlface.sh
+
+systemd-setup:
+	@echo "Creating systemd service file"
+	echo '[Unit]' > $(SERVICE_FILE)
+	echo 'Description=ML Face Recognition Service' >> $(SERVICE_FILE)
+	echo 'After=network.target' >> $(SERVICE_FILE)
+	echo '' >> $(SERVICE_FILE)
+	echo '[Service]' >> $(SERVICE_FILE)
+	echo 'Type=simple' >> $(SERVICE_FILE)
+	echo 'User=$(shell whoami)' >> $(SERVICE_FILE)
+	echo 'WorkingDirectory=$(DESTDIR)' >> $(SERVICE_FILE)
+	echo 'ExecStart=$(DESTDIR)/launch_mlface.sh' >> $(SERVICE_FILE)
+	echo 'Restart=always' >> $(SERVICE_FILE)
+	echo '' >> $(SERVICE_FILE)
+	echo '[Install]' >> $(SERVICE_FILE)
+	echo 'WantedBy=multi-user.target' >> $(SERVICE_FILE)
+	systemctl daemon-reload
+	systemctl enable mlface
+	systemctl start mlface
+
+systemd-update: install
+	systemctl restart mlface
+
+clean:
+	@echo "sudo rm -rf $(DESTDIR)"
+	@echo "sudo rm $(SERVICE_FILE)"
