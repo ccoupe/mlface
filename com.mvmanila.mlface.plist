@@ -6,12 +6,14 @@
    <string>com.mvmanila.mlface</string>
    <key>ProgramArguments</key>
    <array>
-	 <string>/usr/local/lib/mlface/osxface.sh</string>
+	 <string>/Volumes/Projects/iot/mlface/launch_mlface.sh</string>
    </array>
    <key>StandardOutPath</key>
-   <string>/var/log/mlface.log</string>
+   <string>/Volumes/Projects/iot/mlface/mlface.log</string>
    <key>StandardErrorPath</key>
-   <string>/var/log/mlface.log</string>
+   <string>/Volumes/Projects/iot/mlface/mlface.log</string>
+   <key>WorkingDirectory</key>
+   <string>/Volumes/Projects/iot/mlface</string>
    <key>KeepAlive</key>
    <dict>
 	<key>NetworkState</key>

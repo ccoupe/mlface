@@ -31,6 +31,38 @@ $ docker run -dp 4785:4785 -v /home/ccoupe/Projects/known_faces:/known_faces --r
 $ docker run -dp 4785:4785 -v /home/ccoupe/known_faces:/known_faces  -e TZ=America/Boise --restart=always --name=mlface fcrecog-arm64
 
 
-known_faces/<name1>/<pic1>.jpg, known_faces/<name1>/<pic2>.jpg,,,
+## Local Installation (macOS & Linux)
+
+Instead of Docker, you can install the service locally using the provided Makefiles. This is recommended for production to avoid network mount overhead and ensure better performance.
+
+### macOS (Apple Silicon with MPS)
+1. **Install to local disk**:
+   ```bash
+   sudo make install
+   ```
+2. **Setup Homebrew service**:
+   ```bash
+   make brew-setup
+   ```
+3. **Update service after changes**:
+   ```bash
+   make brew-update
+   ```
+
+### Linux (Systemd)
+1. **Install to local disk**:
+   ```bash
+   sudo make -f Makefile.linux install
+   ```
+2. **Setup Systemd service**:
+   ```bash
+   sudo make -f Makefile.linux systemd-setup
+   ```
+3. **Update service after changes**:
+   ```bash
+   sudo make -f Makefile.linux systemd-update
+   ```
+
+## Directory Structure for Known Faces
   known_faces/<name2>/<pic1>.jpg,,, 
   known_faces/<name3>/<pic1>.jpg,,,

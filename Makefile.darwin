@@ -1,0 +1,46 @@
+# Makefile for macOS (Homebrew Services)
+
+DESTDIR = /usr/local/lib/mlface
+VENV = $(DESTDIR)/venv
+TAP_NAME = ccoupe/local
+FORMULA_PATH = $(shell brew --repository $(TAP_NAME))/Formula/mlface.rb
+
+.PHONY: all install brew-setup brew-update clean
+
+all:
+	@echo "macOS Management:"
+	@echo "  sudo make install      - Install files and venv to $(DESTDIR)"
+	@echo "  make brew-setup        - Create local tap and install formula"
+	@echo "  make brew-update       - Update formula and restart service"
+
+install:
+	@echo "Creating directory $(DESTDIR)"
+	mkdir -p $(DESTDIR)
+	@echo "Copying source files"
+	cp mlface_mps.py $(DESTDIR)/
+	cp -R lib $(DESTDIR)/
+	cp requirements_mps.txt $(DESTDIR)/
+	@echo "Setting up virtual environment"
+	python3.12 -m venv $(VENV)
+	$(VENV)/bin/python3 -m pip install --upgrade pip
+	$(VENV)/bin/python3 -m pip install -r $(DESTDIR)/requirements_mps.txt
+	@echo "Creating launch script"
+	echo '#!/bin/bash' > $(DESTDIR)/launch_mlface.sh
+	echo 'cd $(DESTDIR)' >> $(DESTDIR)/launch_mlface.sh
+	echo 'exec ./venv/bin/python3 mlface_mps.py -d /Users/ccoupe/known_faces' >> $(DESTDIR)/launch_mlface.sh
+	chmod +x $(DESTDIR)/launch_mlface.sh
+
+brew-setup:
+	brew tap-new --no-git $(TAP_NAME) || true
+	mkdir -p $$(dirname $(FORMULA_PATH))
+	cp mlface.rb $(FORMULA_PATH)
+	brew install $(TAP_NAME)/mlface
+	brew services start mlface
+
+brew-update:
+	cp mlface.rb $(FORMULA_PATH)
+	brew reinstall $(TAP_NAME)/mlface
+	brew services restart mlface
+
+clean:
+	@echo "Use 'sudo rm -rf $(DESTDIR)' to uninstall"

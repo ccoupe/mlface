@@ -1,73 +1,55 @@
-# Running mlface on macOS Apple Silicon (M1/M2/M3)
+# Running mlface with PyTorch MPS (Option A) on Apple Silicon
 
-`mlface` can be run either **natively** (recommended for best performance using Apple Silicon's hardware acceleration) or inside a **Docker container** (using ARM64 virtualization).
-
----
-
-## Option 1: Native macOS Installation (Recommended)
-
-Running natively provides the best performance because `dlib` and `face_recognition` can utilize Apple Silicon's native CPU optimizations (ARM NEON and the macOS Accelerate framework) without Docker VM overhead.
-
-### 1. Install System Dependencies
-Make sure you have [Homebrew](https://brew.sh/) installed, then install the build tools and libraries:
-```bash
-brew install cmake boost dlib
-```
-
-### 2. Set Up a Python Virtual Environment
-We recommend using a clean Python virtual environment to avoid conflicts:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install Python Dependencies
-Upgrade `pip` and install the requirements:
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### 4. Run the Service
-You can run the server directly:
-```bash
-python3 mlface.py -d ./known_faces
-```
-
-### 5. Run as a macOS Service (LaunchAgent)
-To run the service automatically in the background when you log in:
-1. Copy the plist file to your `LaunchAgents` directory:
-   ```bash
-   cp com.mvmanila.mlface.plist ~/Library/LaunchAgents/
-   ```
-2. Load and start the background service:
-   ```bash
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mvmanila.mlface.plist
-   ```
-3. To stop and unload the service:
-   ```bash
-   launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.mvmanila.mlface.plist
-   ```
+This branch (`option-a-mps`) implements Option A: **Face Detection and Recognition using PyTorch with MPS (Metal Performance Shaders) acceleration**.
 
 ---
 
-## Option 2: Docker Installation (ARM64)
+## Standard Installation (Homebrew Service)
 
-If you prefer to run `mlface` isolated in a Docker container on Apple Silicon, use the ARM64-specific Dockerfile.
+The preferred way to run this on macOS is as a local Homebrew service. This moves the execution off external mounts to the local SSD for better performance.
 
-### 1. Build the Docker Image
-Build the container using `Dockerfile.arm64`:
+1. **Install files and setup Virtual Environment**:
+   ```bash
+   sudo make install
+   ```
+   This installs everything to `/usr/local/lib/mlface/`.
+
+2. **Configure and start the Homebrew service**:
+   ```bash
+   make brew-setup
+   ```
+
+3. **Manage the service**:
+   ```bash
+   brew services list
+   brew services restart mlface
+   tail -f /usr/local/var/log/mlface.log
+   ```
+
+## Manual Prerequisites & Installation
+
+1. **Install System Dependencies** using [Homebrew](https://brew.sh/):
+   ```bash
+   brew install cmake boost
+   ```
+
+2. **Set up a Virtual Environment**:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. **Install Requirements**:
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements_mps.txt
+   ```
+
+## Running the Service
+
+Start the GPU-accelerated face recognition server:
 ```bash
-docker build -f Dockerfile.arm64 -t fcrecog-arm64 .
+python3 mlface_mps.py -d ./known_faces
 ```
 
-### 2. Run the Docker Container
-Mount your local directory containing known faces to the container:
-```bash
-docker run -dp 4785:4785 \
-  -v ~/known_faces:/known_faces \
-  --name mlface \
-  --restart always \
-  fcrecog-arm64
-```
-*(Make sure to adjust `~/known_faces` to the actual directory of known faces on your host mac).*
+This runs the websocket service on port `4785`, utilizing your M2's GPU via Metal Performance Shaders for both detection (MTCNN) and embedding extraction (FaceNet / VGGface2).
